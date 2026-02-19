@@ -28,8 +28,8 @@ function scanServer() {
     const onlineCount = response.players.online;
     console.log(`Scan: ${onlineCount} players detected.`);
 
-    if (onlineCount > 0) {
-      console.log("Players found! Launching Bot...");
+    if (onlineCount == 0) {
+      console.log("No Players found! Launching Bot...");
       startBot();
     }
   });
@@ -44,7 +44,7 @@ function startBot() {
     port,
     username: botUsername,
     auth: "offline",
-    version: "1.21.1",
+    version: "1.21.11",
     viewDistance: 0
   });
 
