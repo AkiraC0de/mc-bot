@@ -6,7 +6,7 @@ function startBot() {
     const bot = mineflayer.createBot({
       host: "comscie.falixsrv.me",
       port: 25565,
-      username: "AkiraBot001",
+      username: "AkiraBot002",
       auth: "offline",
       viewDistance: 1,
       version: "1.21.11",
@@ -19,7 +19,9 @@ function startBot() {
 
     bot.once("spawn", () => {
       console.log("Bot joined");
-      bot.chat("I am here, niggas! Bot na gawa ni Akira");
+      bot.swingArm("right"); // Sends an "Animation" packet (very lightweight)
+      bot.swingArm("right"); // Sends an "Animation" packet (very lightweight)
+      //bot.chat("I am here, niggas! Bot na gawa ni Akira");
 
       // --- ADVANCED ANTI-AFK MOVEMENT ---
       let state = 0;
