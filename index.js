@@ -11,11 +11,9 @@ const botUsername = "AkiraBotV4";
 let botInstance = null;
 let isBotJoining = false;
 
-// 1. Render Port Setup
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => res.end("Scanner Active")).listen(PORT);
 
-// 2. The Scanner (Checks if players are online without joining)
 function scanServer() {
   if (botInstance || isBotJoining) return; // Don't scan if bot is already inside
 
@@ -35,7 +33,6 @@ function scanServer() {
   });
 }
 
-// 3. The Bot Logic
 function startBot() {
   isBotJoining = true;
   
@@ -55,12 +52,12 @@ function startBot() {
     isBotJoining = false;
     console.log("Bot joined the game.");
 
-    // CHECK EVERY MINUTE: Should the bot leave?
+    // CHECK EVERY MINUTE Should the bot leave
     const checkInterval = setInterval(() => {
       if (!bot.players) return;
       
       const playerCount = Object.keys(bot.players).length;
-      if (playerCount > 0) { // there are player/s the bot should leave
+      if (playerCount > 1) { // there are player/s the bot should leave
         console.log("Server has player. Bot leaving to save resources...");
         clearInterval(checkInterval);
         bot.quit();
@@ -87,11 +84,11 @@ function startBot() {
   bot.on("error", (err) => console.log("Bot Error:", err.message));
 }
 
-// Start the cycle
+// Start
 setInterval(scanServer, 2 * 60 * 1000); // Scan every 2 minutes
 scanServer();
 
-// Render Self-Ping
+// Self-Ping
 setInterval(() => {
   axios.get('https://mc-bot-egvq.onrender.com/').catch(() => {});
 }, 10 * 60 * 1000);
