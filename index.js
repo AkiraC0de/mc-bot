@@ -80,3 +80,11 @@ startBot();
 const http = require("http");
 http.createServer((req, res) => res.end("alive")).listen(3000);
 console.log("Server is running on port 3000");
+
+const axios = require('axios'); // You might need to run: npm install axios
+
+setInterval(() => {
+  axios.get('https://mc-bot-egvq.onrender.com/')
+    .then(() => console.log('Self-ping successful: Staying alive.'))
+    .catch((err) => console.log('Self-ping failed: ', err.message));
+}, 10 * 60 * 1000); // Pings every 10 minutes
