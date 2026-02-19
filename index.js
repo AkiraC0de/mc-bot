@@ -6,7 +6,7 @@ function startBot() {
     const bot = mineflayer.createBot({
       host: "comscie.falixsrv.me",
       port: 25565,
-      username: "AkiraBot002",
+      username: "AkiraBotV3",
       auth: "offline",
       viewDistance: 1,
       version: "1.21.11",
