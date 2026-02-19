@@ -10,7 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@types/node": "^20.13.11",
-    "mineflayer": "^2.41.0"
+    "mineflayer": "^4.35.0"
   },
   "description": ""
 }
