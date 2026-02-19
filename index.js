@@ -6,10 +6,10 @@ function startBot() {
     const bot = mineflayer.createBot({
       host: "comscie.falixsrv.me",
       port: 25565,
-      username: "BotNaMarupok",
+      username: "AkiraBot001",
       auth: "offline",
       viewDistance: 1,
-      version: "1.21.11", // Note: Changed to 1.21.1 (Valid version)
+      version: "1.21.11",
     });
 
     bot.on("resourcePack", () => {
