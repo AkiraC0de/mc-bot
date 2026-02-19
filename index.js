@@ -1,90 +1,97 @@
 const mineflayer = require("mineflayer");
+const mc = require('minecraft-protocol');
+const http = require("http");
+const axios = require('axios');
 
-function startBot() {
-  try {
-    console.log("Starting bot...");
-    const bot = mineflayer.createBot({
-      host: "comscie.falixsrv.me",
-      port: 25565,
-      username: "AkiraBotV3",
-      auth: "offline",
-      viewDistance: 1,
-      version: "1.21.11",
-    });
+// --- CONFIG ---
+const host = "comscie.falixsrv.me";
+const port = 25565;
+const botUsername = "AkiraBotV4";
 
-    bot.on("resourcePack", () => {
-      console.log("Accepting resource pack...");
-      bot.acceptResourcePack();
-    });
+let botInstance = null;
+let isBotJoining = false;
 
-    bot.once("spawn", () => {
-      console.log("Bot joined");
-      bot.swingArm("right"); // Sends an "Animation" packet (very lightweight)
-      bot.swingArm("right"); // Sends an "Animation" packet (very lightweight)
-      //bot.chat("I am here, niggas! Bot na gawa ni Akira");
+// 1. Render Port Setup
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => res.end("Scanner Active")).listen(PORT);
 
-      // --- ADVANCED ANTI-AFK MOVEMENT ---
-      let state = 0;
-      setInterval(() => {
-        if (!bot.entity) return;
+// 2. The Scanner (Checks if players are online without joining)
+function scanServer() {
+  if (botInstance || isBotJoining) return; // Don't scan if bot is already inside
 
-        // Clear all current movements before starting next one
-        bot.clearControlStates();
+  mc.ping({ host, port, version: "1.21.11" }, (err, response) => {
+    if (err) {
+      console.log("Server is offline. Retrying scan in 2 mins...");
+      return;
+    }
 
-        if (state === 0) {
-          // Move Forward & Jump
-          bot.setControlState("forward", true);
-          bot.setControlState("jump", true);
-          console.log("Anti-AFK: Moving Forward");
-          state = 1;
-        } else {
-          // Move Backward & Jump
-          bot.setControlState("back", true);
-          bot.setControlState("jump", true);
-          console.log("Anti-AFK: Moving Backward");
-          state = 0;
-        }
+    const onlineCount = response.players.online;
+    console.log(`Scan: ${onlineCount} players detected.`);
 
-        // Stop moving after 1 second so we don't walk into lava/off cliffs
-        setTimeout(() => {
-          bot.clearControlStates();
-        }, 1000);
-      }, 30000); // Runs every 30 seconds
-    });
-
-    bot.on("chat", (username, message) => {
-      if (username === bot.username) return;
-      console.log(`${username}: ${message}`);
-    });
-
-    bot.on("end", (reason) => {
-      console.log(`Disconnected: ${reason}. Retrying in 15s...`);
-      setTimeout(startBot, 15000);
-    });
-
-    bot.on("error", (err) => {
-      console.log("Bot Error:", err.message);
-    });
-
-    bot.on("kicked", (reason) => {
-      console.log("Kicked from server:", reason);
-    });
-  } catch (e) {
-    console.log("Creation Error:", e.message);
-    setTimeout(startBot, 15000);
-  }
+    if (onlineCount > 0) {
+      console.log("Players found! Launching Bot...");
+      startBot();
+    }
+  });
 }
 
-startBot();
+// 3. The Bot Logic
+function startBot() {
+  isBotJoining = true;
+  
+  const bot = mineflayer.createBot({
+    host,
+    port,
+    username: botUsername,
+    auth: "offline",
+    version: "1.21.1",
+    viewDistance: 0
+  });
 
-const http = require("http");
-http.createServer((req, res) => res.end("alive")).listen(3000);
-console.log("Server is running on port 3000");
+  bot.on("resourcePack", () => bot.acceptResourcePack());
 
-const axios = require('axios'); // You might need to run: npm install axios
+  bot.once("spawn", () => {
+    botInstance = bot;
+    isBotJoining = false;
+    console.log("Bot joined the game.");
 
+    // CHECK EVERY MINUTE: Should the bot leave?
+    const checkInterval = setInterval(() => {
+      if (!bot.players) return;
+      
+      const playerCount = Object.keys(bot.players).length;
+      if (playerCount <= 1) { // Only the bot is left
+        console.log("Server is empty. Bot leaving to save resources...");
+        clearInterval(checkInterval);
+        bot.quit();
+      }
+    }, 60000);
+
+    // AUTO-CLEAR ITEMS (Every 15 mins while bot is active)
+    const clearItemsInterval = setInterval(() => {
+      if (botInstance) {
+        bot.chat("/kill @e[type=item]");
+        console.log("Auto-cleared items.");
+      } else {
+        clearInterval(clearItemsInterval);
+      }
+    }, 15 * 60 * 1000);
+  });
+
+  bot.on("end", () => {
+    botInstance = null;
+    isBotJoining = false;
+    console.log("Bot disconnected. Returning to Scan Mode.");
+  });
+
+  bot.on("error", (err) => console.log("Bot Error:", err.message));
+}
+
+// Start the cycle
+setInterval(scanServer, 2 * 60 * 1000); // Scan every 2 minutes
+scanServer();
+
+// Render Self-Ping
 setInterval(() => {
-  axios.get('https://mc-bot-egvq.onrender.com/')
-    .then(() => console.log('Self-ping successful: Staying alive.'))
-    .catch((err) => console.log('Self-ping failed: ', err.message));
-}, 10 * 60 * 1000); // Pings every 10 minutes
+  axios.get('https://mc-bot-egvq.onrender.com/').catch(() => {});
+}, 10 * 60 * 1000);
