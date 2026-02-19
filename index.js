@@ -91,4 +91,4 @@ scanServer();
 // Self-Ping
 setInterval(() => {
   axios.get('https://mc-bot-egvq.onrender.com/').catch(() => {});
-}, 10 * 60 * 1000);
+}, 6 * 60 * 1000);
