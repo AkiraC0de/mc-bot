@@ -60,8 +60,8 @@ function startBot() {
       if (!bot.players) return;
       
       const playerCount = Object.keys(bot.players).length;
-      if (playerCount <= 1) { // Only the bot is left
-        console.log("Server is empty. Bot leaving to save resources...");
+      if (playerCount > 0) { // there are player/s the bot should leave
+        console.log("Server has player. Bot leaving to save resources...");
         clearInterval(checkInterval);
         bot.quit();
       }
