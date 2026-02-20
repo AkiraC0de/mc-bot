@@ -10,24 +10,26 @@ const botUsername = "AkiraBotV4";
 
 let botInstance = null;
 let isBotJoining = false;
+let activeIntervals = []; // To keep track of timers and clear them later
 
 const PORT = process.env.PORT || 3000;
-http.createServer((req, res) => res.end("Scanner Active")).listen(PORT);
+http.createServer((req, res) => res.end("Guardian Scanner Active")).listen(PORT);
 
 function scanServer() {
-  if (botInstance || isBotJoining) return; // Don't scan if bot is already inside
+  if (botInstance || isBotJoining) return;
 
+  // Use 1.21.1 for standard compatibility
   mc.ping({ host, port, version: "1.21.11" }, (err, response) => {
     if (err) {
-      console.log("Server is offline. Retrying scan in 2 mins...");
+      console.log("Server offline. Retrying scan...");
       return;
     }
 
     const onlineCount = response.players.online;
     console.log(`Scan: ${onlineCount} players detected.`);
 
-    if (onlineCount == 0) {
-      console.log("No Players found! Launching Bot...");
+    if (onlineCount === 0) {
+      console.log("No Players found! Launching Guardian...");
       startBot();
     }
   });
@@ -37,11 +39,8 @@ function startBot() {
   isBotJoining = true;
   
   const bot = mineflayer.createBot({
-    host,
-    port,
-    username: botUsername,
-    auth: "offline",
-    version: "1.21.11",
+    host, port, username: botUsername,
+    auth: "offline", version: "1.21.11",
     viewDistance: 0
   });
 
@@ -50,45 +49,62 @@ function startBot() {
   bot.once("spawn", () => {
     botInstance = bot;
     isBotJoining = false;
-    console.log("Bot joined the game.");
+    console.log("Guardian Joined. Monitoring and Cleaning...");
 
-    // CHECK EVERY MINUTE Should the bot leave
-    const checkInterval = setInterval(() => {
+    // --- MAIN GUARDIAN LOOP (Check Players + Movement) ---
+    const mainLoop = setInterval(() => {
       if (!bot.players) return;
       
       const playerCount = Object.keys(bot.players).length;
-      if (playerCount > 1) { // there are player/s the bot should leave
-        console.log("Server has player. Bot leaving to save resources...");
-        clearInterval(checkInterval);
-        bot.quit();
-      }
-    }, 60000);
 
-    // AUTO-CLEAR ITEMS (Every 15 mins while bot is active)
-    const clearItemsInterval = setInterval(() => {
-      if (botInstance) {
-        bot.chat("/kill @e[type=item]");
-        console.log("Auto-cleared items.");
-      } else {
-        clearInterval(clearItemsInterval);
+      // 1. Leave if a real player joins
+      if (playerCount > 1) { 
+        console.log("Real player detected! Guardian leaving...");
+        cleanupAndQuit();
+        return;
       }
+
+      // 2. Anti-Idle Micro-Movement
+      bot.setControlState('forward', true);
+      setTimeout(() => {
+        bot.setControlState('forward', false);
+        bot.setControlState('back', true);
+        setTimeout(() => bot.setControlState('back', false), 400);
+      }, 400);
+
+    }, 45000); // Reset idle timer every 45 seconds
+
+    // --- AUTO-CLEAR ITEMS ---
+    const clearItemsLoop = setInterval(() => {
+      bot.chat("/kill @e[type=item]");
+      console.log("Guardian: Cleaned up dropped items.");
     }, 15 * 60 * 1000);
+
+    // Save intervals so we can stop them when the bot leaves
+    activeIntervals.push(mainLoop, clearItemsLoop);
   });
+
+  function cleanupAndQuit() {
+    activeIntervals.forEach(clearInterval); // Stop all loops
+    activeIntervals = [];
+    if (botInstance) botInstance.quit();
+  }
 
   bot.on("end", () => {
     botInstance = null;
     isBotJoining = false;
-    console.log("Bot disconnected. Returning to Scan Mode.");
+    activeIntervals.forEach(clearInterval); // Safety backup
+    activeIntervals = [];
+    console.log("Guardian Offline. Returning to Scan Mode.");
   });
 
   bot.on("error", (err) => console.log("Bot Error:", err.message));
 }
 
-// Start
-setInterval(scanServer, 2 * 60 * 1000); // Scan every 2 minutes
+// Initial cycles
+setInterval(scanServer, 2 * 60 * 1000); 
 scanServer();
 
-// Self-Ping
 setInterval(() => {
   axios.get('https://mc-bot-egvq.onrender.com/').catch(() => {});
 }, 6 * 60 * 1000);
