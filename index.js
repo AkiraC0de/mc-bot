@@ -57,14 +57,17 @@ function startBot() {
       
       const playerCount = Object.keys(bot.players).length;
 
-      // 1. Leave if a real player joins
       if (playerCount > 1) { 
         console.log("Real player detected! Guardian leaving...");
         cleanupAndQuit();
         return;
       }
 
-      // 2. Anti-Idle Micro-Movement
+      if (bot.time.timeOfDay >= 13000) {
+        console.log(`It's getting dark (${bot.time.timeOfDay}). Setting time to day...`);
+        bot.chat("/time set day");
+      }
+
       bot.setControlState('forward', true);
       setTimeout(() => {
         bot.setControlState('forward', false);
